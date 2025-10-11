@@ -87,8 +87,6 @@ class _BaseSP500RatioChart(ChartPlugin):
         try:
             close = await _download_close_series()
             ratio = _compute_ratio(close, self.config.resample_rule, self.config.window)
-            if ratio.empty:
-                raise ValueError("Downloaded data did not produce any ratio points")
             labels = _format_time_labels(ratio, self.config.label_format)
             ratio_values = [round(value, 4) for value in ratio]
         except Exception as exc:  # pragma: no cover - depends on network availability
