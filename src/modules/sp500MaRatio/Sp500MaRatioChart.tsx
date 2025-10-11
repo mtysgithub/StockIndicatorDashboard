@@ -9,7 +9,6 @@ import {
   resampleWeekly,
   type ResampledPoint,
 } from './calculations';
-import { fallbackMonthlyRatio, fallbackWeeklyRatio } from './fallbackData';
 import styles from './Sp500MaRatioChart.module.css';
 
 const START_DATE = new Date(Date.UTC(1950, 0, 1));
@@ -18,11 +17,6 @@ interface ChartState {
   monthly: ResampledPoint[];
   weekly: ResampledPoint[];
 }
-
-const FALLBACK_STATE: ChartState = {
-  monthly: fallbackMonthlyRatio.map((point) => ({ time: point.time, value: point.value })),
-  weekly: fallbackWeeklyRatio.map((point) => ({ time: point.time, value: point.value })),
-};
 
 function toSeriesData(points: ResampledPoint[]) {
   return points.map((point) => [point.time, Number(point.value.toFixed(4))]);
@@ -130,12 +124,10 @@ const Sp500MaRatioChart = ({ refreshIndex, context }: ChartComponentProps) => {
   const [state, setState] = useState<ChartState | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [usingFallback, setUsingFallback] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
-    setUsingFallback(false);
     try {
       const rawData = await fetchDailyCloses('^GSPC', START_DATE);
       const monthly = resampleMonthly(rawData);
@@ -149,10 +141,7 @@ const Sp500MaRatioChart = ({ refreshIndex, context }: ChartComponentProps) => {
 
       setState({ monthly: monthlyRatio, weekly: weeklyRatio });
     } catch (err) {
-      console.warn('实时数据获取失败，降级到内置样例数据。', err);
-      setError(`实时数据请求失败：${(err as Error).message}`);
-      setState(FALLBACK_STATE);
-      setUsingFallback(true);
+      setError((err as Error).message);
     } finally {
       setLoading(false);
     }
@@ -179,13 +168,6 @@ const Sp500MaRatioChart = ({ refreshIndex, context }: ChartComponentProps) => {
         <div className={styles.errorBox}>
           <strong>数据加载失败：</strong>
           <span>{error}</span>
-        </div>
-      ) : null}
-      {usingFallback ? (
-        <div className={styles.noticeBox}>
-          <span>
-            当前展示 <strong>离线样例数据</strong>，请配置 <code>VITE_YAHOO_FINANCE_PROXY</code> 或部署服务端代理以恢复实时行情。
-          </span>
         </div>
       ) : null}
       {option ? (

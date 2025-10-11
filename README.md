@@ -18,16 +18,6 @@ npm run dev
 
 开发服务器默认运行在 `http://localhost:5173`，也可以部署至 Vercel 等平台。
 
-## 数据获取与 CORS 代理
-
-Yahoo Finance 官方接口默认不提供跨域头部，因此直接在浏览器环境访问会触发 CORS 拦截。项目的 `fetchDailyCloses` 做了多重容错：
-
-1. **直接请求** `query1.finance.yahoo.com`。
-2. **可选代理**：如果在运行环境中设置了 `VITE_YAHOO_FINANCE_PROXY`（例如指向自建的 Vercel Edge/Serverless 代理），则会优先使用该地址。
-3. **公共只读代理**：自动回退到 `https://r.jina.ai/` 作为透明缓存，绕过跨域限制。
-
-当前仍无法访问时，图表会自动切换到内置的离线样例数据，并在界面醒目提示。这样至少可以展示图表布局与交互，待代理准备就绪后即可恢复实时行情。
-
 ## 目录结构
 
 ```

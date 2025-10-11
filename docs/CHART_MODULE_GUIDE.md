@@ -52,7 +52,6 @@ chartRegistry.register({
 
 - **Python 研究复用**：可在 Python 中通过 API 或文件输出提供处理好的数据，前端可从接口获取并渲染。
 - **直接调用 API**：也可在前端直接请求公开金融数据源（如 Yahoo Finance API、Polygon 等），注意跨域和频率限制。
-- **跨域处理**：如果目标数据源缺乏 CORS 头，可参考 `src/services/yahooFinance.ts` 的实现，配置 `VITE_YAHOO_FINANCE_PROXY` 指向自建代理，或准备降级用的离线样例数据，保证前端 UI 在无网或限流场景下依旧可展示。
 - **刷新策略**：
   - 使用 `defaultRefreshInterval` 控制基础自动刷新。
   - 组件可在 `useEffect` 中监听 `refreshIndex` 以决定何时重新抓取数据。

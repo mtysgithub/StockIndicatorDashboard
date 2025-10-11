@@ -18,39 +18,11 @@ export interface CandlePoint {
 }
 
 const YAHOO_CHART_ENDPOINT = 'https://query1.finance.yahoo.com/v8/finance/chart/';
-const JINA_PROXY_PREFIX = 'https://r.jina.ai/https://query1.finance.yahoo.com/v8/finance/chart/';
 
 function assertResultPayload(payload: YahooChartResponse): asserts payload is YahooChartResponse {
   if (!payload.chart || !Array.isArray(payload.chart.result) || !payload.chart.result.length) {
     throw new Error('Empty Yahoo Finance response.');
   }
-}
-
-async function fetchChartPayload(url: string) {
-  const response = await fetch(url, { mode: 'cors' });
-  if (!response.ok) {
-    throw new Error(`Yahoo Finance 请求失败：${response.status}`);
-  }
-
-  const text = await response.text();
-
-  try {
-    return JSON.parse(text) as YahooChartResponse;
-  } catch (error) {
-    throw new Error('Yahoo Finance 响应解析失败。');
-  }
-}
-
-function buildCandidateUrls(path: string) {
-  const urls = [`${YAHOO_CHART_ENDPOINT}${path}`];
-
-  const proxy = import.meta.env.VITE_YAHOO_FINANCE_PROXY?.trim();
-  if (proxy) {
-    urls.push(`${proxy.replace(/\/$/, '')}/${path}`);
-  }
-
-  urls.push(`${JINA_PROXY_PREFIX}${path}`);
-  return urls;
 }
 
 export async function fetchDailyCloses(
@@ -60,41 +32,38 @@ export async function fetchDailyCloses(
 ): Promise<CandlePoint[]> {
   const period1 = Math.floor(start.getTime() / 1000);
   const period2 = Math.floor(end.getTime() / 1000);
-  const path = `${encodeURIComponent(symbol)}?interval=1d&period1=${period1}&period2=${period2}`;
-  const candidateUrls = buildCandidateUrls(path);
+  const url = new URL(encodeURIComponent(symbol), YAHOO_CHART_ENDPOINT);
+  url.searchParams.set('interval', '1d');
+  url.searchParams.set('period1', `${period1}`);
+  url.searchParams.set('period2', `${period2}`);
 
-  let lastError: Error | null = null;
-  for (const url of candidateUrls) {
-    try {
-      const payload = await fetchChartPayload(url);
-      if (payload.chart.error) {
-        throw new Error(payload.chart.error.description ?? 'Unknown Yahoo Finance error');
-      }
-
-      assertResultPayload(payload);
-
-      const [result] = payload.chart.result;
-      const { timestamp, indicators } = result;
-      const closes = indicators.quote[0]?.close ?? [];
-
-      const candles: CandlePoint[] = [];
-      timestamp.forEach((time, index) => {
-        const close = closes[index];
-        if (close == null) {
-          return;
-        }
-        candles.push({
-          time: time * 1000,
-          close,
-        });
-      });
-
-      return candles;
-    } catch (error) {
-      lastError = error as Error;
-      continue;
-    }
+  const response = await fetch(url.toString());
+  if (!response.ok) {
+    throw new Error(`Yahoo Finance 请求失败：${response.status}`);
   }
 
-  throw lastError ?? new Error('无法请求 Yahoo Finance 数据');
+  const payload = (await response.json()) as YahooChartResponse;
+  if (payload.chart.error) {
+    throw new Error(payload.chart.error.description ?? 'Unknown Yahoo Finance error');
+  }
+
+  assertResultPayload(payload);
+
+  const [result] = payload.chart.result;
+  const { timestamp, indicators } = result;
+  const closes = indicators.quote[0]?.close ?? [];
+
+  const candles: CandlePoint[] = [];
+  timestamp.forEach((time, index) => {
+    const close = closes[index];
+    if (close == null) {
+      return;
+    }
+    candles.push({
+      time: time * 1000,
+      close,
+    });
+  });
+
+  return candles;
 }
