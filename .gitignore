@@ -159,6 +159,14 @@ venv.bak/
 .dmypy.json
 dmypy.json
 
+# Node / frontend
+node_modules/
+dist/
+pnpm-lock.yaml
+package-lock.json
+yarn.lock
+.vite/
+
 # Pyre type checker
 .pyre/
 
