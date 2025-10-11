@@ -1,1 +1,0 @@
-"""Stock Indicator Dashboard package."""
