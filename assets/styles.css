@@ -67,6 +67,17 @@ header p {
   font-size: 0.95rem;
 }
 
+.chart-note {
+  margin: 0.75rem 0 0;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  display: none;
+}
+
+.chart-note--error {
+  color: #fca5a5;
+}
+
 .chart-meta {
   display: flex;
   align-items: center;

@@ -2,13 +2,18 @@
 from __future__ import annotations
 
 import asyncio
+import json
+import logging
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Dict, Iterable, List
+from pathlib import Path
+from typing import TYPE_CHECKING, Dict, Iterable, List, Tuple
 
 from app.charts.base import ChartPlugin
 
+_LOGGER = logging.getLogger(__name__)
 _TICKER = "^GSPC"
 _START_DATE = "1950-01-01"
+_FALLBACK_DIR = Path(__file__).resolve().parent / "data"
 
 
 if TYPE_CHECKING:  # pragma: no cover - imported for type checking only
@@ -18,8 +23,14 @@ if TYPE_CHECKING:  # pragma: no cover - imported for type checking only
 async def _download_close_series() -> "pd.Series":
     """Download the S&P 500 daily close series asynchronously."""
 
-    import pandas as pd
-    import yfinance as yf
+    try:
+        import pandas as pd
+        import yfinance as yf
+    except ModuleNotFoundError as exc:  # pragma: no cover - handled at runtime
+        missing = exc.name or "required dependency"
+        raise RuntimeError(
+            "Missing optional dependency '%s'. Install pandas and yfinance to enable live data downloads." % missing
+        ) from exc
 
     dataframe = await asyncio.to_thread(
         yf.download,
@@ -63,6 +74,7 @@ class _RatioConfig:
     ratio_color: str
     threshold_value: float
     threshold_label: str
+    fallback_file: str
 
 
 class _BaseSP500RatioChart(ChartPlugin):
@@ -71,10 +83,18 @@ class _BaseSP500RatioChart(ChartPlugin):
     config: _RatioConfig
 
     async def fetch_payload(self) -> Dict[str, Iterable]:
-        close = await _download_close_series()
-        ratio = _compute_ratio(close, self.config.resample_rule, self.config.window)
-        labels = _format_time_labels(ratio, self.config.label_format)
-        ratio_values = [round(value, 4) for value in ratio]
+        note: str | None = None
+        try:
+            close = await _download_close_series()
+            ratio = _compute_ratio(close, self.config.resample_rule, self.config.window)
+            labels = _format_time_labels(ratio, self.config.label_format)
+            ratio_values = [round(value, 4) for value in ratio]
+        except Exception as exc:  # pragma: no cover - depends on network availability
+            _LOGGER.warning("Falling back to bundled S&P 500 ratios for '%s': %s", self.id, exc)
+            labels, ratio_values = self._load_fallback_ratio()
+            note = (
+                "Live market data could not be retrieved. Displaying bundled sample ratios instead."
+            )
 
         datasets = [
             {
@@ -105,7 +125,20 @@ class _BaseSP500RatioChart(ChartPlugin):
             "type": "line",
             "labels": labels,
             "datasets": datasets,
+            **({"note": note} if note else {}),
         }
+
+    def _load_fallback_ratio(self) -> Tuple[List[str], List[float]]:
+        path = _FALLBACK_DIR / self.config.fallback_file
+        if not path.exists():
+            raise RuntimeError(
+                "Fallback data is missing. Ensure '%s' is bundled with the application." % path.name
+            )
+        with path.open("r", encoding="utf-8") as handle:
+            data = json.load(handle)
+        labels = [entry["label"] for entry in data]
+        ratios = [float(entry["ratio"]) for entry in data]
+        return labels, ratios
 
 
 class SP500MonthlyMA100RatioChart(_BaseSP500RatioChart):
@@ -124,6 +157,7 @@ class SP500MonthlyMA100RatioChart(_BaseSP500RatioChart):
         ratio_color="#2563eb",
         threshold_value=1.7,
         threshold_label="Threshold 1.7",
+        fallback_file="sp500_monthly_ratio_fallback.json",
     )
 
 
@@ -143,5 +177,6 @@ class SP500WeeklyMA100RatioChart(_BaseSP500RatioChart):
         ratio_color="#16a34a",
         threshold_value=1.3,
         threshold_label="Threshold 1.3",
+        fallback_file="sp500_weekly_ratio_fallback.json",
     )
 
