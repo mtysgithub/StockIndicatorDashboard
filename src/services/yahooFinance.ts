@@ -18,6 +18,45 @@ export interface CandlePoint {
 }
 
 const YAHOO_CHART_ENDPOINT = 'https://query1.finance.yahoo.com/v8/finance/chart/';
+const DEFAULT_PROXY_PATH = '/api/yahoo-chart';
+
+function resolveProxyBase(): string | null {
+  const envProxy = import.meta.env.VITE_YAHOO_CHART_PROXY?.trim();
+  if (envProxy) {
+    return envProxy;
+  }
+
+  if (typeof window === 'undefined') {
+    return DEFAULT_PROXY_PATH;
+  }
+
+  if (import.meta.env.DEV) {
+    return null;
+  }
+
+  const hostname = window.location.hostname;
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    return null;
+  }
+
+  return DEFAULT_PROXY_PATH;
+}
+
+function buildRequestUrl(symbol: string, params: URLSearchParams) {
+  const proxyBase = resolveProxyBase();
+
+  if (proxyBase) {
+    const proxyParams = new URLSearchParams(params);
+    proxyParams.set('symbol', symbol);
+    return `${proxyBase}${proxyBase.includes('?') ? '&' : '?'}${proxyParams.toString()}`;
+  }
+
+  const url = new URL(encodeURIComponent(symbol), YAHOO_CHART_ENDPOINT);
+  params.forEach((value, key) => {
+    url.searchParams.set(key, value);
+  });
+  return url.toString();
+}
 
 function assertResultPayload(payload: YahooChartResponse): asserts payload is YahooChartResponse {
   if (!payload.chart || !Array.isArray(payload.chart.result) || !payload.chart.result.length) {
@@ -32,12 +71,12 @@ export async function fetchDailyCloses(
 ): Promise<CandlePoint[]> {
   const period1 = Math.floor(start.getTime() / 1000);
   const period2 = Math.floor(end.getTime() / 1000);
-  const url = new URL(encodeURIComponent(symbol), YAHOO_CHART_ENDPOINT);
-  url.searchParams.set('interval', '1d');
-  url.searchParams.set('period1', `${period1}`);
-  url.searchParams.set('period2', `${period2}`);
+  const params = new URLSearchParams();
+  params.set('interval', '1d');
+  params.set('period1', `${period1}`);
+  params.set('period2', `${period2}`);
 
-  const response = await fetch(url.toString());
+  const response = await fetch(buildRequestUrl(symbol, params));
   if (!response.ok) {
     throw new Error(`Yahoo Finance 请求失败：${response.status}`);
   }
