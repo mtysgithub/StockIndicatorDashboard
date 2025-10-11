@@ -18,6 +18,16 @@ npm run dev
 
 开发服务器默认运行在 `http://localhost:5173`，也可以部署至 Vercel 等平台。
 
+### 部署到 Vercel
+
+由于 Yahoo Finance 不允许浏览器直接跨域请求，生产环境需要通过同源 API 代理拉取数据。仓库已经内置 `api/yahoo-chart.ts` Serverless 函数，部署到 Vercel 时请在项目设置中新增环境变量：
+
+```
+VITE_YAHOO_CHART_PROXY=/api/yahoo-chart
+```
+
+启用后前端会自动通过该代理获取数据，避免 CORS 限制。开发阶段（`npm run dev`）仍然会直接访问 Yahoo Finance，不受影响。
+
 ## 目录结构
 
 ```
