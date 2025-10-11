@@ -4,6 +4,7 @@ from __future__ import annotations
 import asyncio
 import importlib
 import pkgutil
+import threading
 from typing import Dict, Iterable, List, Optional
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -20,6 +21,7 @@ class ChartManager:
         self._charts: Dict[str, ChartPlugin] = {}
         self._scheduler = AsyncIOScheduler(timezone=get_settings().update_timezone)
         self._discovered = False
+        self._discover_lock = threading.Lock()
         self._started = False
         self._startup_lock = asyncio.Lock()
 
@@ -29,22 +31,26 @@ class ChartManager:
         if self._discovered:
             return
 
-        module = importlib.import_module(package)
-        for info in pkgutil.walk_packages(module.__path__, module.__name__ + "."):
-            if info.name.endswith(".base"):
-                continue
-            imported = importlib.import_module(info.name)
-            for attr in dir(imported):
-                obj = getattr(imported, attr)
-                if not (isinstance(obj, type) and issubclass(obj, ChartPlugin)):
-                    continue
-                if obj is ChartPlugin:
-                    continue
-                if not getattr(obj, "id", None):
-                    continue
-                self.register(obj())
+        with self._discover_lock:
+            if self._discovered:
+                return
 
-        self._discovered = True
+            module = importlib.import_module(package)
+            for info in pkgutil.walk_packages(module.__path__, module.__name__ + "."):
+                if info.name.endswith(".base"):
+                    continue
+                imported = importlib.import_module(info.name)
+                for attr in dir(imported):
+                    obj = getattr(imported, attr)
+                    if not (isinstance(obj, type) and issubclass(obj, ChartPlugin)):
+                        continue
+                    if obj is ChartPlugin:
+                        continue
+                    if not getattr(obj, "id", None):
+                        continue
+                    self.register(obj())
+
+            self._discovered = True
 
     def _ensure_discovered(self) -> None:
         if not self._discovered:
