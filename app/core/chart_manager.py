@@ -19,9 +19,15 @@ class ChartManager:
     def __init__(self) -> None:
         self._charts: Dict[str, ChartPlugin] = {}
         self._scheduler = AsyncIOScheduler(timezone=get_settings().update_timezone)
+        self._discovered = False
+        self._started = False
+        self._startup_lock = asyncio.Lock()
 
     def discover(self, package: str = "app.charts") -> None:
         """Auto-discover chart plugins within a package."""
+
+        if self._discovered:
+            return
 
         module = importlib.import_module(package)
         for info in pkgutil.walk_packages(module.__path__, module.__name__ + "."):
@@ -37,6 +43,12 @@ class ChartManager:
                 if not getattr(obj, "id", None):
                     continue
                 self.register(obj())
+
+        self._discovered = True
+
+    def _ensure_discovered(self) -> None:
+        if not self._discovered:
+            self.discover()
 
     def register(self, plugin: ChartPlugin) -> None:
         """Register a plugin instance and schedule its updates."""
@@ -61,9 +73,15 @@ class ChartManager:
     async def startup(self) -> None:
         """Start scheduler and perform initial warm-up."""
 
-        await asyncio.gather(*(chart.update() for chart in self._charts.values()))
-        if not self._scheduler.running:
-            self._scheduler.start()
+        async with self._startup_lock:
+            if self._started:
+                return
+
+            await asyncio.gather(*(chart.update() for chart in self._charts.values()))
+            if not self._scheduler.running:
+                self._scheduler.start()
+
+            self._started = True
 
     async def shutdown(self) -> None:
         """Stop scheduler gracefully."""
@@ -71,13 +89,22 @@ class ChartManager:
         if self._scheduler.running:
             self._scheduler.shutdown(wait=False)
 
+    async def ensure_started(self) -> None:
+        """Guarantee discovery and initial warm-up before serving requests."""
+
+        self._ensure_discovered()
+        await self.startup()
+
     def list(self) -> Iterable[ChartPlugin]:
+        self._ensure_discovered()
         return self._charts.values()
 
     def get(self, chart_id: str) -> Optional[ChartPlugin]:
+        self._ensure_discovered()
         return self._charts.get(chart_id)
 
     async def trigger_update(self, chart_id: str) -> None:
+        self._ensure_discovered()
         chart = self.get(chart_id)
         if not chart:
             raise KeyError(chart_id)

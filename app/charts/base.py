@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import abc
 import datetime as dt
+import logging
 from dataclasses import dataclass, field
 from typing import Any, Dict, Optional
 
@@ -13,6 +14,7 @@ class ChartState:
 
     last_updated: Optional[dt.datetime] = None
     payload: Dict[str, Any] = field(default_factory=dict)
+    error: Optional[str] = None
 
 
 class ChartPlugin(abc.ABC):
@@ -38,8 +40,19 @@ class ChartPlugin(abc.ABC):
     async def update(self) -> None:
         """Refresh internal state and timestamp."""
 
-        self.state.payload = await self.fetch_payload()
+        logger = logging.getLogger(__name__)
+        try:
+            payload = await self.fetch_payload()
+        except Exception as exc:  # pragma: no cover - defensive branch
+            logger.exception("Failed to update chart '%s'", self.id)
+            message = str(exc)
+            self.state.payload = {"type": "line", "labels": [], "datasets": [], "error": message}
+            self.state.error = message
+            return
+
+        self.state.payload = payload
         self.state.last_updated = dt.datetime.now(dt.timezone.utc)
+        self.state.error = None
 
     def to_dict(self) -> Dict[str, Any]:
         """Metadata exposed to the API layer."""

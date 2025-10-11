@@ -18,6 +18,7 @@ function renderCard(chart) {
       <p>${chart.metadata.description || 'No description provided.'}</p>
     </header>
     <canvas id="canvas-${chart.metadata.id}"></canvas>
+    <p class="chart-note" id="note-${chart.metadata.id}" role="status"></p>
     <div class="chart-meta">
       <span>Updated ${chart.metadata.lastUpdated ? new Date(chart.metadata.lastUpdated).toLocaleTimeString() : 'never'}</span>
       <button data-id="${chart.metadata.id}">Refresh now</button>
@@ -46,9 +47,26 @@ const charts = new Map();
 
 function renderChart(chart) {
   const canvas = document.getElementById(`canvas-${chart.metadata.id}`);
+  const note = document.getElementById(`note-${chart.metadata.id}`);
   if (!canvas) return;
   if (charts.has(chart.metadata.id)) {
     charts.get(chart.metadata.id).destroy();
+    charts.delete(chart.metadata.id);
+  }
+  if (chart.payload.error) {
+    canvas.style.display = 'none';
+    if (note) {
+      note.textContent = chart.payload.error;
+      note.classList.add('chart-note--error');
+      note.style.display = 'block';
+    }
+    return;
+  }
+  canvas.style.display = 'block';
+  if (note) {
+    note.textContent = chart.payload.note || '';
+    note.classList.toggle('chart-note--error', false);
+    note.style.display = chart.payload.note ? 'block' : 'none';
   }
   charts.set(
     chart.metadata.id,

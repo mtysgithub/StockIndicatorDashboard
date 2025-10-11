@@ -9,11 +9,13 @@ router = APIRouter(prefix="/api/charts", tags=["charts"])
 
 @router.get("/", response_model=list[ChartMetadata])
 async def list_charts() -> list[ChartMetadata]:
+    await manager.ensure_started()
     return [ChartMetadata(**chart.to_dict()) for chart in manager.list()]
 
 
 @router.get("/{chart_id}", response_model=ChartPayload)
 async def get_chart(chart_id: str) -> ChartPayload:
+    await manager.ensure_started()
     chart = manager.get(chart_id)
     if not chart:
         raise HTTPException(status_code=404, detail="Chart not found")
@@ -22,6 +24,7 @@ async def get_chart(chart_id: str) -> ChartPayload:
 
 @router.post("/{chart_id}/trigger", response_model=ChartPayload)
 async def trigger_chart_update(chart_id: str) -> ChartPayload:
+    await manager.ensure_started()
     chart = manager.get(chart_id)
     if not chart:
         raise HTTPException(status_code=404, detail="Chart not found")
