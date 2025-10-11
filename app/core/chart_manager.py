@@ -30,8 +30,13 @@ class ChartManager:
             imported = importlib.import_module(info.name)
             for attr in dir(imported):
                 obj = getattr(imported, attr)
-                if isinstance(obj, type) and issubclass(obj, ChartPlugin) and obj is not ChartPlugin:
-                    self.register(obj())
+                if not (isinstance(obj, type) and issubclass(obj, ChartPlugin)):
+                    continue
+                if obj is ChartPlugin:
+                    continue
+                if not getattr(obj, "id", None):
+                    continue
+                self.register(obj())
 
     def register(self, plugin: ChartPlugin) -> None:
         """Register a plugin instance and schedule its updates."""

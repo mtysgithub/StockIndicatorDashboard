@@ -3,10 +3,7 @@ from __future__ import annotations
 
 import asyncio
 from dataclasses import dataclass
-from typing import Dict, Iterable, List
-
-import pandas as pd
-import yfinance as yf
+from typing import TYPE_CHECKING, Dict, Iterable, List
 
 from app.charts.base import ChartPlugin
 
@@ -14,8 +11,15 @@ _TICKER = "^GSPC"
 _START_DATE = "1950-01-01"
 
 
-async def _download_close_series() -> pd.Series:
+if TYPE_CHECKING:  # pragma: no cover - imported for type checking only
+    import pandas as pd
+
+
+async def _download_close_series() -> "pd.Series":
     """Download the S&P 500 daily close series asynchronously."""
+
+    import pandas as pd
+    import yfinance as yf
 
     dataframe = await asyncio.to_thread(
         yf.download,
@@ -32,8 +36,8 @@ async def _download_close_series() -> pd.Series:
 
 
 def _compute_ratio(
-    series: pd.Series, resample_rule: str, window: int
-) -> pd.Series:
+    series: "pd.Series", resample_rule: str, window: int
+) -> "pd.Series":
     """Resample close prices and compute the close/MA ratio."""
 
     resampled = series.resample(resample_rule).last()
@@ -42,7 +46,7 @@ def _compute_ratio(
     return ratio
 
 
-def _format_time_labels(series: pd.Series, fmt: str) -> List[str]:
+def _format_time_labels(series: "pd.Series", fmt: str) -> List[str]:
     return [index.strftime(fmt) for index in series.index]
 
 
