@@ -1,16 +1,5 @@
-import { useMemo } from 'react';
-import { chartRegistry } from './core/chartRegistry';
-import { DashboardLayout } from './layout/DashboardLayout';
-import { ChartGrid } from './components/ChartGrid';
+import { MacroRiskDashboard } from './components/MacroRiskDashboard';
 
-const App = () => {
-  const charts = useMemo(() => chartRegistry.list(), []);
-
-  return (
-    <DashboardLayout chartsCount={charts.length}>
-      <ChartGrid charts={charts} />
-    </DashboardLayout>
-  );
-};
+const App = () => <MacroRiskDashboard />;
 
 export default App;
