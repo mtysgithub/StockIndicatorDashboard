@@ -1,0 +1,136 @@
+.page {
+  width: min(1440px, 100%);
+  margin: 0 auto;
+  padding: 32px clamp(18px, 4vw, 64px) 56px;
+}
+
+.hero {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+.eyebrow {
+  margin: 0 0 10px;
+  color: #8fb4ff;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: .18em;
+}
+
+.hero h1 {
+  margin: 0;
+  font-size: clamp(30px, 5vw, 58px);
+  line-height: 1.02;
+}
+
+.subtitle {
+  max-width: 760px;
+  margin: 14px 0 0;
+  color: #a9b4cb;
+  line-height: 1.65;
+}
+
+.refreshButton {
+  flex: none;
+  border: 1px solid rgba(143, 180, 255, .5);
+  border-radius: 999px;
+  padding: 12px 20px;
+  background: rgba(75, 110, 190, .2);
+  color: #eef4ff;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.refreshButton:disabled { opacity: .55; cursor: wait; }
+
+.alert {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 24px;
+  margin-bottom: 24px;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 22px;
+  background: rgba(17, 24, 39, .78);
+  box-shadow: 0 24px 60px rgba(0,0,0,.24);
+}
+
+.alert h2 { margin: 10px 0 8px; font-size: clamp(21px, 3vw, 32px); }
+.alert p { margin: 0; color: #c2cada; }
+.stable { border-color: rgba(70, 211, 155, .4); }
+.fragile { border-color: rgba(250, 190, 70, .55); }
+.deteriorating, .errorAlert { border-color: rgba(255, 91, 110, .65); background: rgba(67, 20, 31, .75); }
+
+.levelBadge, .statusBadge {
+  display: inline-flex;
+  border-radius: 999px;
+  padding: 5px 10px;
+  background: rgba(255,255,255,.09);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.alertStats { display: grid; min-width: 96px; place-content: center; text-align: center; }
+.alertStats span { font-size: 42px; font-weight: 800; }
+.alertStats small { color: #a9b4cb; }
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.card {
+  display: flex;
+  min-height: 390px;
+  flex-direction: column;
+  padding: 22px;
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 20px;
+  background: linear-gradient(160deg, rgba(24, 33, 54, .94), rgba(9, 14, 27, .92));
+}
+
+.card.healthy { box-shadow: inset 0 3px 0 rgba(70, 211, 155, .75); }
+.card.watch { box-shadow: inset 0 3px 0 rgba(250, 190, 70, .85); }
+.card.warning { box-shadow: inset 0 3px 0 rgba(255, 91, 110, .9); }
+.cardHeader { display: flex; justify-content: space-between; gap: 14px; }
+.cardTitle { margin: 0; color: #b8c3d8; font-weight: 700; }
+.cardValue { margin: 8px 0 0; font-size: clamp(28px, 3vw, 40px); font-weight: 800; }
+.summary { min-height: 72px; color: #a9b4cb; line-height: 1.6; }
+
+.details { display: grid; gap: 9px; margin: 4px 0 16px; }
+.details div { display: flex; justify-content: space-between; gap: 16px; padding-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,.07); }
+.details dt { color: #8793aa; }
+.details dd { margin: 0; font-weight: 700; text-align: right; }
+
+.threshold { margin-top: auto; padding: 12px; border-radius: 12px; background: rgba(255,255,255,.045); }
+.threshold span { color: #8fb4ff; font-size: 12px; font-weight: 800; }
+.threshold p { margin: 5px 0 0; color: #c8d0df; font-size: 13px; line-height: 1.45; }
+.cardFooter { display: grid; gap: 5px; margin-top: 14px; color: #748096; font-size: 11px; }
+.cardFooter a { color: #9cbcff; text-decoration: none; }
+
+.methodology {
+  margin-top: 24px;
+  padding: 22px;
+  border-radius: 18px;
+  background: rgba(17, 24, 39, .62);
+  color: #a9b4cb;
+  line-height: 1.65;
+}
+.methodology h2 { margin-top: 0; color: #f4f7ff; }
+.loading { padding: 80px 0; text-align: center; color: #a9b4cb; }
+.errorAlert { flex-direction: column; }
+
+@media (max-width: 1050px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 700px) {
+  .page { padding-top: 22px; }
+  .hero, .alert { align-items: stretch; flex-direction: column; }
+  .grid { grid-template-columns: 1fr; }
+  .card { min-height: auto; }
+  .alertStats { display: none; }
+  .refreshButton { width: 100%; }
+}
