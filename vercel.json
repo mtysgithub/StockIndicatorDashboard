@@ -1,0 +1,7 @@
+{
+  "functions": {
+    "api/macro-dashboard.ts": {
+      "maxDuration": 60
+    }
+  }
+}
